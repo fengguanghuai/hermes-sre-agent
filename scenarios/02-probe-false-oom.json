@@ -1,0 +1,47 @@
+{
+  "id": "02-probe-false-oom",
+  "title": "Startup Probe SIGKILL Masquerading as OOM -> Negative Evidence Blocks Resize",
+  "namespace": "apps",
+  "environment": "staging",
+  "target_pod": "search-worker-6d5c4b-9p8q1",
+  "apply": true,
+  "approved": false,
+  "pods": [
+    {
+      "namespace": "apps",
+      "name": "search-worker-6d5c4b-9p8q1",
+      "uid": "uid-search-001",
+      "deployment": "search-worker",
+      "container_name": "worker",
+      "phase": "Running",
+      "ready": false,
+      "reason": "CrashLoopBackOff",
+      "exit_code": 137,
+      "restarts": 4,
+      "age_seconds": 900,
+      "resource_version": "51902",
+      "memory_limit_mi": 2048,
+      "memory_request_mi": 1024,
+      "last_state_reason": "OOMKilled"
+    }
+  ],
+  "events": {
+    "search-worker-6d5c4b-9p8q1": [
+      "Unhealthy: Startup probe failed: Get \"http://10.244.1.18:8080/healthz\": context deadline exceeded",
+      "Killing: Container worker failed startup probe, will be restarted"
+    ]
+  },
+  "logs": {
+    "search-worker-6d5c4b-9p8q1": [
+      "INFO Warming up index cache (18s elapsed)...",
+      "WARN Received SIGKILL before HTTP listener bound"
+    ]
+  },
+  "expected": {
+    "root_cause": "UNKNOWN",
+    "action": "dispatch_issue",
+    "allowed": false,
+    "blocked_by": "confidence_threshold",
+    "lifecycle_state": "escalated"
+  }
+}

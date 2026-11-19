@@ -1,0 +1,70 @@
+{
+  "id": "01-true-oomkilled",
+  "title": "True OOMKilled -> Bounded CAS Memory Resize",
+  "namespace": "apps",
+  "environment": "staging",
+  "target_pod": "checkout-api-7f8b9c-x4k2p",
+  "apply": true,
+  "approved": false,
+  "pods": [
+    {
+      "namespace": "apps",
+      "name": "checkout-api-7f8b9c-x4k2p",
+      "uid": "uid-checkout-001",
+      "deployment": "checkout-api",
+      "container_name": "app",
+      "phase": "Running",
+      "ready": false,
+      "reason": "CrashLoopBackOff",
+      "exit_code": 137,
+      "restarts": 3,
+      "age_seconds": 1800,
+      "resource_version": "44210",
+      "memory_limit_mi": 512,
+      "memory_request_mi": 384,
+      "node_allocatable_memory_mi": 16384,
+      "namespace_quota_remaining_mi": 8192,
+      "last_state_reason": "OOMKilled"
+    },
+    {
+      "namespace": "apps",
+      "name": "checkout-api-7f8b9c-healthy",
+      "uid": "uid-checkout-002",
+      "deployment": "checkout-api",
+      "container_name": "app",
+      "phase": "Running",
+      "ready": true,
+      "restarts": 1,
+      "age_seconds": 86400,
+      "last_state_reason": "Error"
+    },
+    {
+      "namespace": "apps",
+      "name": "db-migrate-job-9k2m1",
+      "uid": "uid-job-001",
+      "deployment": "db-migrate",
+      "container_name": "migrate",
+      "phase": "Succeeded",
+      "ready": false,
+      "age_seconds": 7200
+    }
+  ],
+  "events": {
+    "checkout-api-7f8b9c-x4k2p": [
+      "OOMKilling: Memory cgroup out of memory: Killed process 1 (java) memory limit 512Mi",
+      "BackOff: Back-off restarting failed container app"
+    ]
+  },
+  "logs": {
+    "checkout-api-7f8b9c-x4k2p": [
+      "INFO Starting checkout-api v2.4.1 with api_key=sk-demo-secret-12345",
+      "ERROR java.lang.OutOfMemoryError: Java heap space"
+    ]
+  },
+  "expected": {
+    "root_cause": "OOM_KILLED",
+    "action": "resize_memory",
+    "allowed": true,
+    "lifecycle_state": "resolved"
+  }
+}

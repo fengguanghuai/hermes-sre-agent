@@ -1,0 +1,137 @@
+# confidence_policy.yaml — Positive & Negative Evidence Weighted Confidence Scoring
+# Prevents LLM hallucinated confidence and catches common K8s false positives
+# (e.g., startup probe SIGKILL exit 137 masquerading as OOMKilled).
+
+version: "1.0.0"
+
+thresholds:
+  auto_heal_min: 0.75
+  escalate_below: 0.55
+
+categories:
+  OOM_KILLED:
+    base_score: 0.85
+    description: "Container terminated by kernel OOM killer due to memory limit exhaustion."
+    positive_signals:
+      - pattern: "OOMKilled"
+        weight: 0.15
+        source: "status"
+      - pattern: "OutOfMemoryError"
+        weight: 0.10
+        source: "logs"
+      - pattern: "memory limit"
+        weight: 0.05
+        source: "events"
+    negative_signals:
+      - pattern: "Startup probe failed"
+        weight: -0.60
+        source: "events"
+        reason: "SIGKILL (137) likely caused by slow startup probe timeout rather than true OOM."
+      - pattern: "Liveness probe failed"
+        weight: -0.45
+        source: "events"
+        reason: "Container killed by liveness probe; investigate hang/GC before raising memory."
+      - pattern: "Probe terminated"
+        weight: -0.65
+        source: "events"
+        reason: "Kubelet probe termination, not memory exhaustion."
+
+  TRANSIENT_MOUNT:
+    base_score: 0.82
+    description: "Transient node-local volume mount or subPath error recoverable via pod reschedule."
+    positive_signals:
+      - pattern: "MountVolume.SetUp failed"
+        weight: 0.12
+        source: "events"
+      - pattern: "subPath"
+        weight: 0.06
+        source: "events"
+    negative_signals:
+      - pattern: "PersistentVolumeClaim .* not found"
+        weight: -0.60
+        source: "events"
+        reason: "Missing PVC cannot be fixed by pod recreation."
+
+  TRANSIENT_IMAGE_PULL:
+    base_score: 0.80
+    description: "Transient registry timeout or network blip during image pull."
+    positive_signals:
+      - pattern: "ImagePullBackOff"
+        weight: 0.10
+        source: "status"
+      - pattern: "Failed to pull image.*TLS handshake timeout"
+        weight: 0.10
+        source: "events"
+      - pattern: "Failed to pull image.*context deadline exceeded"
+        weight: 0.10
+        source: "events"
+    negative_signals:
+      - pattern: "manifest unknown"
+        weight: -0.70
+        source: "events"
+        reason: "Image tag does not exist in registry; pod delete will not fix it."
+      - pattern: "unauthorized"
+        weight: -0.65
+        source: "events"
+        reason: "Registry credentials invalid; requires secret repair."
+      - pattern: "pull access denied"
+        weight: -0.65
+        source: "events"
+        reason: "Repository permission denied."
+
+  CONFIG_MISSING:
+    base_score: 0.90
+    description: "Deterministic missing configuration, secret, ConfigMap, or unresolved placeholder."
+    positive_signals:
+      - pattern: "Could not resolve placeholder"
+        weight: 0.08
+        source: "logs"
+      - pattern: "CreateContainerConfigError"
+        weight: 0.08
+        source: "status"
+      - pattern: "configmap .* not found"
+        weight: 0.08
+        source: "events"
+      - pattern: "Missing required environment variable"
+        weight: 0.08
+        source: "logs"
+    negative_signals: []
+
+  CODE_DEFECT:
+    base_score: 0.92
+    description: "Application-level code or dependency defect outside infrastructure self-healing boundary."
+    positive_signals:
+      - pattern: "NoClassDefFoundError"
+        weight: 0.06
+        source: "logs"
+      - pattern: "ClassNotFoundException"
+        weight: 0.06
+        source: "logs"
+      - pattern: "NullPointerException"
+        weight: 0.05
+        source: "logs"
+      - pattern: "ModuleNotFoundError"
+        weight: 0.06
+        source: "logs"
+      - pattern: "panic: runtime error"
+        weight: 0.06
+        source: "logs"
+    negative_signals: []
+
+  DEPENDENCY_UNREACHABLE:
+    base_score: 0.82
+    description: "Pod is failing due to unreachable downstream dependency (DB/Cache/HTTP)."
+    positive_signals:
+      - pattern: "Connection refused"
+        weight: 0.08
+        source: "logs"
+      - pattern: "dependency_failed"
+        weight: 0.12
+        source: "dependencies"
+    negative_signals: []
+
+  UNKNOWN:
+    base_score: 0.40
+    description: "Unclassified failure requiring human investigation."
+    positive_signals: []
+    negative_signals: []

@@ -1,0 +1,45 @@
+{
+  "id": "03-config-missing-block",
+  "title": "Missing Config Placeholder -> Block Blind Pod Delete & Escalate",
+  "namespace": "apps",
+  "environment": "staging",
+  "target_pod": "notification-svc-5b7d8f-m3n2q",
+  "apply": true,
+  "approved": false,
+  "pods": [
+    {
+      "namespace": "apps",
+      "name": "notification-svc-5b7d8f-m3n2q",
+      "uid": "uid-notify-001",
+      "deployment": "notification-svc",
+      "container_name": "app",
+      "phase": "Running",
+      "ready": false,
+      "reason": "CrashLoopBackOff",
+      "exit_code": 1,
+      "restarts": 5,
+      "age_seconds": 600,
+      "resource_version": "61044",
+      "memory_limit_mi": 1024,
+      "memory_request_mi": 512
+    }
+  ],
+  "events": {
+    "notification-svc-5b7d8f-m3n2q": [
+      "BackOff: Back-off restarting failed container app"
+    ]
+  },
+  "logs": {
+    "notification-svc-5b7d8f-m3n2q": [
+      "ERROR Failed to start application context",
+      "IllegalArgumentException: Could not resolve placeholder 'service.webhook.url' in value \"${service.webhook.url}\""
+    ]
+  },
+  "expected": {
+    "root_cause": "CONFIG_MISSING",
+    "action": "dispatch_issue",
+    "allowed": false,
+    "blocked_by": "infra_heal_boundary",
+    "lifecycle_state": "escalated"
+  }
+}

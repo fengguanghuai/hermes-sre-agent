@@ -1,0 +1,45 @@
+{
+  "id": "05-code-defect-dispatch",
+  "title": "NoClassDefFoundError -> Infra Self-Heal Boundary Dispatches Issue",
+  "namespace": "apps",
+  "environment": "staging",
+  "target_pod": "billing-engine-4a2e6f-k9l0m",
+  "apply": true,
+  "approved": false,
+  "pods": [
+    {
+      "namespace": "apps",
+      "name": "billing-engine-4a2e6f-k9l0m",
+      "uid": "uid-billing-001",
+      "deployment": "billing-engine",
+      "container_name": "engine",
+      "phase": "Running",
+      "ready": false,
+      "reason": "CrashLoopBackOff",
+      "exit_code": 1,
+      "restarts": 6,
+      "age_seconds": 1200,
+      "resource_version": "81234",
+      "memory_limit_mi": 2048,
+      "memory_request_mi": 1024
+    }
+  ],
+  "events": {
+    "billing-engine-4a2e6f-k9l0m": [
+      "BackOff: Back-off restarting failed container engine"
+    ]
+  },
+  "logs": {
+    "billing-engine-4a2e6f-k9l0m": [
+      "Exception in thread \"main\" java.lang.NoClassDefFoundError: com/example/ledger/LedgerSerializer",
+      "Caused by: java.lang.ClassNotFoundException: com.example.ledger.LedgerSerializer"
+    ]
+  },
+  "expected": {
+    "root_cause": "CODE_DEFECT",
+    "action": "dispatch_issue",
+    "allowed": false,
+    "blocked_by": "infra_heal_boundary",
+    "lifecycle_state": "escalated"
+  }
+}

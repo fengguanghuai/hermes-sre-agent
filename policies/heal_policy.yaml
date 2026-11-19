@@ -1,0 +1,82 @@
+# heal_policy.yaml — Declarative Bounded Self-Healing & Environment Risk Policy
+
+version: "1.0.0"
+
+policies:
+  OOM_KILLED:
+    action: "resize_memory"
+    risk: "low"
+    require_approval: false
+    cooldown_hours: 24
+    memory_floor_mi: 512
+    memory_ceiling_mi: 16384
+    scale_factor: 1.5
+    max_auto_resizes: 1
+    description: "Bounded vertical memory resize via CAS Deployment patch (never blind restart or infinite scaling)."
+
+  TRANSIENT_MOUNT:
+    action: "recreate_pod"
+    risk: "medium"
+    require_approval: false
+    cooldown_hours: 24
+    description: "Exact-UID pod deletion to reschedule onto a healthy node."
+
+  TRANSIENT_IMAGE_PULL:
+    action: "recreate_pod"
+    risk: "medium"
+    require_approval: false
+    cooldown_hours: 6
+    description: "Exact-UID pod recreation after verifying image pull failure is transient."
+
+  CONFIG_MISSING:
+    action: "dispatch_issue"
+    risk: "high"
+    require_approval: true
+    cooldown_hours: 72
+    description: "Configuration or placeholder missing; block blind pod deletion and escalate."
+
+  CODE_DEFECT:
+    action: "dispatch_issue"
+    risk: "high"
+    require_approval: true
+    cooldown_hours: 72
+    description: "Application code/dependency defect; outside infrastructure self-healing boundary."
+
+  DEPENDENCY_UNREACHABLE:
+    action: "dispatch_issue"
+    risk: "high"
+    require_approval: true
+    cooldown_hours: 12
+    description: "Downstream dependency unavailable; restarting caller pod will not fix upstream outage."
+
+  UNKNOWN:
+    action: "dispatch_issue"
+    risk: "high"
+    require_approval: true
+    cooldown_hours: 24
+    description: "Unclassified failure; never auto-mutate without deterministic root cause."
+
+env_constraints:
+  dev:
+    require_approval: false
+    risk_upgrade: false
+    cooldown_multiplier: 1
+    description: "Development environment — low/medium risk actions allowed automatically."
+  staging:
+    require_approval: false
+    risk_upgrade: false
+    cooldown_multiplier: 1
+    description: "Staging/UAT environment — low/medium risk actions allowed automatically."
+  prod:
+    require_approval: true
+    risk_upgrade: true
+    cooldown_multiplier: 3
+    description: "Production environment — zero-tolerance auto-mutation; all actions require explicit approval."
+
+preflight_block_patterns:
+  - "Could not resolve placeholder"
+  - "Missing required environment variable"
+  - "NoClassDefFoundError"
+  - "ClassNotFoundException"
+  - "manifest unknown"
+  - "pull access denied"

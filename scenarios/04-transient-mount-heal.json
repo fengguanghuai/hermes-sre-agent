@@ -1,0 +1,40 @@
+{
+  "id": "04-transient-mount-heal",
+  "title": "Transient Volume subPath Mount Failure -> Exact-UID Pod Recreate & Reconcile",
+  "namespace": "apps",
+  "environment": "staging",
+  "target_pod": "media-processor-9c1a2d-z7x8v",
+  "apply": true,
+  "approved": false,
+  "pods": [
+    {
+      "namespace": "apps",
+      "name": "media-processor-9c1a2d-z7x8v",
+      "uid": "uid-media-001",
+      "deployment": "media-processor",
+      "container_name": "processor",
+      "phase": "Pending",
+      "ready": false,
+      "reason": "CreateContainerError",
+      "restarts": 0,
+      "age_seconds": 420,
+      "resource_version": "70215",
+      "memory_limit_mi": 1024,
+      "memory_request_mi": 512
+    }
+  ],
+  "events": {
+    "media-processor-9c1a2d-z7x8v": [
+      "FailedMount: MountVolume.SetUp failed for volume \"shared-cache\": subPath directory not mounted on node worker-04"
+    ]
+  },
+  "logs": {
+    "media-processor-9c1a2d-z7x8v": []
+  },
+  "expected": {
+    "root_cause": "TRANSIENT_MOUNT",
+    "action": "recreate_pod",
+    "allowed": true,
+    "lifecycle_state": "resolved"
+  }
+}

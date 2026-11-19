@@ -1,0 +1,30 @@
+# cooldown_policy.yaml — 4-Layer Anti-Avalanche Circuit Breaker
+
+version: "1.0.0"
+
+cooldowns:
+  # Layer 1: Same Pod + Same Root Cause (prevents single-pod heal loop)
+  same_pod_same_root:
+    hours: 24
+    on_violation: "skip_and_escalate"
+
+  # Layer 2: Same Pod + Any Root Cause (multi-root failure indicates deeper issue)
+  same_pod_any_root:
+    hours: 12
+    on_violation: "skip_and_escalate"
+
+  # Layer 3: Same Deployment rate-limit (prevents deleting an entire service replica set)
+  same_deployment:
+    hours: 6
+    max_actions: 1
+    on_violation: "rate_limit_escalate"
+
+  # Layer 4: Cluster-wide panic circuit breaker (halts automation during cascading outage)
+  cluster_pressure:
+    window_minutes: 1
+    max_actions: 5
+    on_violation: "panic_circuit_break"
+
+history:
+  retain_days: 30
+  cleanup_on_run: true

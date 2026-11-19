@@ -1,0 +1,48 @@
+{
+  "id": "06-avalanche-circuit-break",
+  "title": "Cascading Restart Storm -> 4-Layer Cooldown Triggers Cluster Panic Circuit Breaker",
+  "namespace": "apps",
+  "environment": "staging",
+  "target_pod": "edge-gateway-8e9f0a-r1t2y",
+  "apply": true,
+  "approved": false,
+  "seed_history": [
+    {"namespace": "apps", "environment": "staging", "deployment": "svc-a", "pod_name": "svc-a-1", "pod_uid": "u1", "root_cause": "TRANSIENT_MOUNT", "action": "recreate_pod"},
+    {"namespace": "apps", "environment": "staging", "deployment": "svc-b", "pod_name": "svc-b-1", "pod_uid": "u2", "root_cause": "TRANSIENT_MOUNT", "action": "recreate_pod"},
+    {"namespace": "apps", "environment": "staging", "deployment": "svc-c", "pod_name": "svc-c-1", "pod_uid": "u3", "root_cause": "TRANSIENT_MOUNT", "action": "recreate_pod"},
+    {"namespace": "apps", "environment": "staging", "deployment": "svc-d", "pod_name": "svc-d-1", "pod_uid": "u4", "root_cause": "TRANSIENT_MOUNT", "action": "recreate_pod"},
+    {"namespace": "apps", "environment": "staging", "deployment": "svc-e", "pod_name": "svc-e-1", "pod_uid": "u5", "root_cause": "TRANSIENT_MOUNT", "action": "recreate_pod"}
+  ],
+  "pods": [
+    {
+      "namespace": "apps",
+      "name": "edge-gateway-8e9f0a-r1t2y",
+      "uid": "uid-gateway-001",
+      "deployment": "edge-gateway",
+      "container_name": "gateway",
+      "phase": "Pending",
+      "ready": false,
+      "reason": "ImagePullBackOff",
+      "restarts": 0,
+      "age_seconds": 360,
+      "resource_version": "90512",
+      "memory_limit_mi": 512,
+      "memory_request_mi": 256
+    }
+  ],
+  "events": {
+    "edge-gateway-8e9f0a-r1t2y": [
+      "Failed: Failed to pull image \"registry.example.com/edge-gateway:v1.9\": TLS handshake timeout"
+    ]
+  },
+  "logs": {
+    "edge-gateway-8e9f0a-r1t2y": []
+  },
+  "expected": {
+    "root_cause": "TRANSIENT_IMAGE_PULL",
+    "action": "dispatch_issue",
+    "allowed": false,
+    "blocked_by": "cooldown:cluster_pressure",
+    "lifecycle_state": "escalated"
+  }
+}
