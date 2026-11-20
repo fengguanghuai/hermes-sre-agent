@@ -1,6 +1,6 @@
 # hermes-sre-agent
 
-A policy-driven, **Kubernetes Service Diagnosis & Bounded Self-Healing Agent** built for [Hermes Agent](https://github.com/NousResearch/hermes-agent) and standalone CLI/CI workflows.
+A policy-driven, **Kubernetes & Standalone Docker Service Diagnosis & Bounded Self-Healing Agent** built for [Hermes Agent](https://github.com/NousResearch/hermes-agent) and standalone CLI/CI workflows.
 
 Instead of letting an LLM freestyle destructive `kubectl delete` or `kubectl patch` commands in a shell, `hermes-sre-agent` separates intent routing from a **deterministic 5-stage SRE control plane** governed by three declarative YAML policies.
 
@@ -72,7 +72,7 @@ Hermes invokes `hermes-sre diagnose` deterministically, catches the negative evi
 ### Prerequisites
 
 - Python `>= 3.10`
-- `kubectl` (only required for live cluster targets; offline scenarios run with zero external tools)
+- `kubectl` (for live Kubernetes targets) or `docker` CLI (for standalone Docker / `docker compose` hosts, including remote hosts via `--docker-host ssh://user@host`); offline scenarios run with zero external tools
 - Optional: [Hermes Agent](https://github.com/NousResearch/hermes-agent) for interactive chat / skill execution
 
 ### Install
@@ -131,6 +131,22 @@ hermes-sre heal \
 
 # 5. Inspect persisted idempotent receipt instead of replaying on timeout
 hermes-sre status --request-id inc-2026-002
+```
+
+### Standalone Docker / Docker Compose Usage
+
+The same 5-stage diagnosis, guardrails, cooldowns, and interactive follow-up (`next_steps`) work on standalone Docker hosts via `--runtime docker` (`--namespace` maps to Compose project, `standalone`, or `all`; `--pod` maps to container name):
+
+```bash
+# Scan abnormal containers on a local or remote SSH Docker host
+hermes-sre inventory --runtime docker --docker-host ssh://ops@server-01 --format markdown
+
+# Diagnose a single container (reads inspect, healthcheck logs, docker events, and container logs)
+hermes-sre diagnose --runtime docker --pod shop-orders-1 --format markdown
+
+# Dry-run first, then apply bounded memory update / container-ID-guarded restart
+hermes-sre heal --runtime docker --pod shop-orders-1 --request-id inc-docker-001 --format markdown
+hermes-sre heal --runtime docker --pod shop-orders-1 --request-id inc-docker-002 --apply
 ```
 
 ## Running Tests

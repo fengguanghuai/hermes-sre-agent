@@ -13,6 +13,7 @@ from typing import Any
 from .classifier import Classifier
 from .control_plane import ControlPlane
 from .executor import Executor
+from .guidance import build_next_steps, render_next_steps_markdown
 from .models import DependencyTarget, IncidentReport, InventorySummary
 from .observer import Observer
 from .policy import PolicyBundle
@@ -69,6 +70,7 @@ class SREWorkflow:
             classification=classification,
             decision=decision,
             receipt=None,
+            next_steps=build_next_steps(obs, classification, decision),
         )
 
     def heal(
@@ -124,6 +126,7 @@ class SREWorkflow:
             classification=classification,
             decision=decision,
             receipt=receipt,
+            next_steps=build_next_steps(obs, classification, decision, receipt),
         )
 
     def status(self, request_id: str) -> dict[str, Any] | None:
@@ -282,6 +285,7 @@ def render_incident_markdown(report: IncidentReport) -> str:
                 f"- **Reconciliation**: `{report.receipt.reconciliation.get('status')}` "
                 f"(verified=`{report.receipt.reconciliation.get('verified')}`)"
             )
+    lines.extend(render_next_steps_markdown(report.next_steps))
     return "\n".join(lines)
 
 

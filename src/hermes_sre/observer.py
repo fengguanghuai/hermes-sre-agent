@@ -31,6 +31,8 @@ _EXPLICIT_ABNORMAL_REASONS = {
     "InvalidImageName",
     "RunContainerError",
     "Evicted",
+    "Unhealthy",
+    "Paused",
 }
 
 
@@ -110,6 +112,9 @@ class Observer:
         events, ev_redacted = redact_lines(raw_events)
         logs, log_redacted = redact_lines(raw_logs)
         dep_results = self.provider.check_dependencies(dependencies or [])
+        if namespace == "all":
+            # Docker "all" scope: record the real compose project so cooldowns stay consistent.
+            namespace = pod.namespace
         return Observation(
             namespace=namespace,
             environment=environment,

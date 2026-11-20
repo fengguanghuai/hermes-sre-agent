@@ -11,6 +11,7 @@ from typing import Sequence
 from .models import DependencyTarget
 from .policy import PolicyBundle
 from .providers.base import ClusterProvider
+from .providers.docker import DockerProvider
 from .providers.kubectl import KubectlProvider
 from .providers.replay import ScenarioReplayProvider
 from .workflow import (
@@ -49,6 +50,11 @@ def _parse_dependencies(raw_deps: list[str] | None) -> list[DependencyTarget]:
 def _build_provider(args: argparse.Namespace) -> ClusterProvider:
     if getattr(args, "scenario", None):
         return ScenarioReplayProvider.from_file(Path(args.scenario))
+    if getattr(args, "runtime", "k8s") == "docker":
+        return DockerProvider(
+            context=getattr(args, "docker_context", None),
+            host=getattr(args, "docker_host", None),
+        )
     return KubectlProvider(
         kubeconfig=getattr(args, "kubeconfig", None),
         context=getattr(args, "context", None),
@@ -76,7 +82,20 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command", required=True)
 
     def add_common_cluster_args(p: argparse.ArgumentParser) -> None:
-        p.add_argument("--namespace", "-n", required=True, help="Kubernetes namespace")
+        p.add_argument(
+            "--namespace",
+            "-n",
+            default=None,
+            help="Kubernetes namespace; for --runtime docker: compose project, 'standalone', or 'all' (default)",
+        )
+        p.add_argument(
+            "--runtime",
+            default="k8s",
+            choices=["k8s", "docker"],
+            help="Target runtime: Kubernetes via kubectl (default) or a standalone Docker host",
+        )
+        p.add_argument("--docker-context", default=None, help="Optional docker context")
+        p.add_argument("--docker-host", default=None, help="Optional docker host, e.g. ssh://user@host")
         p.add_argument(
             "--env",
             default="staging",
@@ -179,6 +198,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         else:
             print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0 if result["passed"] == result["total"] else 1
+
+    if args.namespace is None:
+        if args.runtime == "docker":
+            args.namespace = "all"
+        else:
+            parser.error("--namespace is required for --runtime k8s")
 
     provider = _build_provider(args)
     workflow = SREWorkflow(provider, policies, args.state_dir)

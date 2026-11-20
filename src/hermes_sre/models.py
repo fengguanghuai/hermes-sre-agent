@@ -172,11 +172,13 @@ class IncidentReport:
     classification: Classification
     decision: PolicyDecision
     receipt: ActionReceipt | None = None
+    next_steps: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "request_id": self.request_id,
             "lifecycle_state": self.lifecycle_state,
+            "next_steps": self.next_steps,
             "observation": self.observation.to_dict(),
             "classification": self.classification.to_dict(),
             "decision": self.decision.to_dict(),
